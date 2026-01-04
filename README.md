@@ -12,6 +12,7 @@ A production-ready Model Context Protocol (MCP) server for **TrueNAS Core and SC
 ## 📖 Documentation
 
 - [HTTP Server Reference](docs/http_server.md) – architecture, auth, gating, and endpoint details for the FastAPI transport.
+- [VS Code Integration Guide](docs/vscode.md) – configure the TrueNAS MCP server as an MCP provider inside Claude for VS Code.
 - [HTTP Smoke Testing Guide](docs/testing.md) – curated curl commands for validating non-destructive tools.
 - [DOCKER.md](DOCKER.md) – container deployment tips including Tailscale integration.
 
