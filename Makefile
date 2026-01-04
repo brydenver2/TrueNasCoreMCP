@@ -105,13 +105,13 @@ test:
 		pytest tests/ -v; \
 	else \
 		echo "⚠️  pytest not installed, running minimal tests..."; \
-		python tests/minimal_test.py; \
+		python tests/functional/minimal_test.py; \
 	fi
 
 # Run minimal tests (no pytest required)
 test-minimal:
 	@echo "🧪 Running minimal tests..."
-	python tests/minimal_test.py
+	python tests/functional/minimal_test.py
 
 # Run tests with coverage
 test-cov:
@@ -121,37 +121,37 @@ test-cov:
 # Test TrueNAS connection
 test-conn:
 	@echo "🔌 Testing TrueNAS connection..."
-	python tests/test_connection.py
+	python tests/functional/test_connection.py
 
 # Run linting
 lint:
 	@echo "🔍 Running linting checks..."
-	flake8 truenas_mcp_server.py tests/ examples/ --max-line-length=100 --exclude=venv,build,dist,TODELETE
+	flake8 truenas_mcp_server/ tests/ examples/ --max-line-length=100 --exclude=venv,build,dist,TODELETE
 	@echo "✅ Linting passed"
 
 # Format code
 format:
 	@echo "🎨 Formatting code with Black..."
-	black truenas_mcp_server.py tests/ examples/ --line-length=100
-	isort truenas_mcp_server.py tests/ examples/
+	black truenas_mcp_server/ tests/ examples/ --line-length=100
+	isort truenas_mcp_server/ tests/ examples/
 	@echo "✅ Formatting complete"
 
 # Type checking
 typecheck:
 	@echo "🔍 Running type checks..."
-	mypy truenas_mcp_server.py --ignore-missing-imports
+	mypy truenas_mcp_server/ --ignore-missing-imports
 
 # Security scan
 security:
 	@echo "🔒 Running security scan..."
-	bandit -r truenas_mcp_server.py
+	bandit -r truenas_mcp_server/
 	safety check
 
 # Run the MCP server
 run:
 	@echo "🚀 Starting TrueNAS MCP Server..."
 	@echo "Press Ctrl+C to stop"
-	@python truenas_mcp_server.py
+	@python -m truenas_mcp_server
 
 # Build documentation
 docs:
@@ -234,7 +234,7 @@ info:
 	fi
 	@echo ""
 	@echo "Project Structure:"
-	@echo "  Main: truenas_mcp_server.py"
+	@echo "  Main: truenas_mcp_server/server.py"
 	@echo "  Tests: tests/"
 	@echo "  Examples: examples/"
 	@echo "  Utils: utils/"

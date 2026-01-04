@@ -30,8 +30,16 @@ def tool_handler(func: Callable) -> Callable:
         logger.info(f"Executing tool: {tool_name}")
         
         try:
+            call_args = args
+            call_kwargs = kwargs
+
+            # Support calling tools with a single parameter dictionary (MCP-compatible)
+            if len(args) == 1 and isinstance(args[0], dict) and not kwargs:
+                call_args = ()
+                call_kwargs = args[0]
+
             # Execute the tool function
-            result = await func(self, *args, **kwargs)
+            result = await func(self, *call_args, **call_kwargs)
             
             # Ensure we have a dict response
             if isinstance(result, ResponseModel):
@@ -46,6 +54,10 @@ def tool_handler(func: Callable) -> Callable:
             
         except TrueNASError as e:
             logger.error(f"Tool {tool_name} failed with TrueNAS error: {e.message}")
+            settings = getattr(self, "settings", None)
+            environment = (getattr(settings, "environment", "") or "").lower()
+            if environment == "testing":
+                raise
             return {
                 "success": False,
                 "error": e.message,

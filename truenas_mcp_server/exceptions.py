@@ -11,15 +11,17 @@ class TrueNASError(Exception):
     def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
         super().__init__(message)
         self.message = message
-        self.details = details or {}
+        self.details = details
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert exception to dictionary for API responses"""
-        return {
+        payload = {
             "error": self.__class__.__name__,
             "message": self.message,
-            "details": self.details
         }
+        if self.details is not None:
+            payload["details"] = self.details
+        return payload
 
 
 class TrueNASConnectionError(TrueNASError):

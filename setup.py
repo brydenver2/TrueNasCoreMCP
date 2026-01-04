@@ -3,11 +3,12 @@
 Setup configuration for TrueNAS MCP Server
 """
 
+from pathlib import Path
 from setuptools import setup, find_packages
 
-# Read the README file
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+# Read the README file from docs/root
+readme_path = Path("docs/root/README.md")
+long_description = readme_path.read_text(encoding="utf-8")
 
 # Package metadata
 setup(

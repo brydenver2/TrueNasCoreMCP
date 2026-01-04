@@ -73,6 +73,7 @@ class SnapshotTools(BaseTool):
 
         snapshot_list = []
         for snap in snapshots:
+            created_ts = self._extract_creation_timestamp(snap)
             # Parse snapshot name to extract dataset and snapshot name
             full_name = snap.get("name", "")
             if "@" in full_name:
@@ -85,15 +86,15 @@ class SnapshotTools(BaseTool):
                 "name": full_name,
                 "dataset": ds_name,
                 "snapshot": snap_name,
-                "created": snap.get("properties", {}).get("creation", {}).get("parsed") if snap.get("properties") else None,
+                "created": created_ts,
                 "referenced": snap.get("properties", {}).get("referenced", {}).get("value") if snap.get("properties") else None,
                 "used": snap.get("properties", {}).get("used", {}).get("value") if snap.get("properties") else None,
                 "holds": snap.get("holds", [])
             }
             
             # Format timestamp if available
-            if snapshot_info["created"]:
-                snapshot_info["created_human"] = datetime.fromtimestamp(snapshot_info["created"]).isoformat()
+            if snapshot_info["created"] is not None:
+                snapshot_info["created_human"] = datetime.fromtimestamp(float(snapshot_info["created"])).isoformat()
             
             snapshot_list.append(snapshot_info)
         
@@ -121,6 +122,51 @@ class SnapshotTools(BaseTool):
             },
             "pagination": pagination
         }
+
+    def _extract_creation_timestamp(self, snapshot: Dict[str, Any]) -> Optional[int]:
+        properties = snapshot.get("properties", {}) if isinstance(snapshot, dict) else {}
+        creation = properties.get("creation", {}) if isinstance(properties, dict) else {}
+
+        for candidate in (
+            creation.get("parsed"),
+            creation.get("rawvalue"),
+            creation.get("value"),
+        ):
+            timestamp = self._coerce_timestamp(candidate)
+            if timestamp is not None:
+                return timestamp
+        return None
+
+    @staticmethod
+    def _coerce_timestamp(value: Any) -> Optional[int]:
+        if value is None:
+            return None
+
+        if isinstance(value, dict):
+            if "$date" in value:
+                return SnapshotTools._coerce_timestamp(value.get("$date"))
+            return None
+
+        if isinstance(value, (int, float)):
+            numeric = int(value)
+            # TrueNAS returns milliseconds for some parsed values
+            if numeric > 10**12:
+                return int(numeric / 1000)
+            return numeric
+
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return None
+            try:
+                numeric = float(stripped)
+            except ValueError:
+                return None
+            if numeric > 10**12:
+                return int(numeric / 1000)
+            return int(numeric)
+
+        return None
     
     @tool_handler
     async def create_snapshot(

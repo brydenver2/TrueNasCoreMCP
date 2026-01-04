@@ -12,7 +12,7 @@ import asyncio
 from typing import Optional, List, Type
 from mcp.server.fastmcp import FastMCP
 
-from .config import get_settings
+from .config import get_settings, Settings
 from .client import get_client, close_client, TrueNASVariant
 from .tools import (
     BaseTool,
@@ -58,7 +58,7 @@ class TrueNASMCPServer:
         LegacyVMTools,  # bhyve VMs (SCALE, differs from Core)
     ]
 
-    def __init__(self, name: str = "TrueNAS MCP Server"):
+    def __init__(self, name: str = "TrueNAS MCP Server", settings: Optional[Settings] = None):
         """
         Initialize the TrueNAS MCP Server
 
@@ -66,7 +66,7 @@ class TrueNASMCPServer:
             name: Server name for MCP
         """
         self.name = name
-        self.settings = get_settings()
+        self.settings = settings or get_settings()
         self.mcp = FastMCP(name)
         self.tools: List[BaseTool] = []
         self.variant: TrueNASVariant = TrueNASVariant.UNKNOWN
@@ -194,7 +194,7 @@ class TrueNASMCPServer:
             asyncio.run(self.cleanup())
 
 
-def create_server(name: Optional[str] = None) -> TrueNASMCPServer:
+def create_server(name: Optional[str] = None, *, settings: Optional[Settings] = None) -> TrueNASMCPServer:
     """
     Factory function to create a TrueNAS MCP Server instance
     
@@ -204,7 +204,7 @@ def create_server(name: Optional[str] = None) -> TrueNASMCPServer:
     Returns:
         TrueNASMCPServer instance
     """
-    return TrueNASMCPServer(name or "TrueNAS MCP Server")
+    return TrueNASMCPServer(name or "TrueNAS MCP Server", settings=settings)
 
 
 def main():

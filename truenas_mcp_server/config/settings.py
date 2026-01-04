@@ -23,6 +23,7 @@ class LogLevel(str, Enum):
 class Environment(str, Enum):
     """Application environment"""
     DEVELOPMENT = "development"
+    TESTING = "testing"
     STAGING = "staging"
     PRODUCTION = "production"
 
@@ -52,6 +53,11 @@ class Settings(BaseSettings):
         description="Verify SSL certificates",
         validation_alias="TRUENAS_VERIFY_SSL"
     )
+    truenas_ca_bundle: Optional[str] = Field(
+        default=None,
+        description="Path to custom CA bundle (PEM)",
+        validation_alias="TRUENAS_CA_BUNDLE"
+    )
     
     # Application Settings
     environment: Environment = Field(
@@ -68,13 +74,18 @@ class Settings(BaseSettings):
     
     # HTTP Client Settings
     http_timeout: float = Field(
-        default=30.0,
+        default=60.0,
         description="HTTP request timeout in seconds"
     )
     
     http_max_retries: int = Field(
         default=3,
         description="Maximum number of HTTP retries"
+    )
+
+    http_retry_backoff_factor: float = Field(
+        default=2.0,
+        description="Exponential backoff factor between retries"
     )
     
     http_pool_connections: int = Field(
@@ -87,31 +98,51 @@ class Settings(BaseSettings):
         description="Maximum size of the connection pool"
     )
     
+    # Feature Flags & Cache
+    enable_debug_tools: bool = Field(
+        default=False,
+        description="Enable debug tools in production",
+    )
+
+    enable_destructive_operations: bool = Field(
+        default=False,
+        description="Enable potentially destructive operations",
+    )
+
+    enable_cache: bool = Field(
+        default=True,
+        description="Enable in-memory caching layer",
+    )
+
+    enable_metrics: bool = Field(
+        default=False,
+        description="Enable Prometheus-style metrics collection",
+    )
+
+    cache_ttl: int = Field(
+        default=300,
+        description="Cache time-to-live in seconds",
+    )
+
+    cache_max_size: int = Field(
+        default=1000,
+        description="Maximum cache entries",
+    )
+
     # Rate Limiting
     rate_limit_enabled: bool = Field(
         default=False,
         description="Enable rate limiting",
     )
-    
-    rate_limit_requests: int = Field(
-        default=100,
-        description="Number of requests per window",
-    )
-    
-    rate_limit_window: int = Field(
+
+    rate_limit_per_minute: int = Field(
         default=60,
-        description="Rate limit window in seconds",
+        description="Allowed requests per minute",
     )
-    
-    # Feature Flags
-    enable_debug_tools: bool = Field(
-        default=False,
-        description="Enable debug tools in production",
-    )
-    
-    enable_destructive_operations: bool = Field(
-        default=False,
-        description="Enable potentially destructive operations",
+
+    rate_limit_burst: int = Field(
+        default=10,
+        description="Allowed burst size",
     )
     
     @field_validator("truenas_url", mode="before")
@@ -120,6 +151,25 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return v.rstrip("/")
         return v
+
+    @field_validator("truenas_verify_ssl", mode="before")
+    def normalize_verify_ssl(cls, value):
+        """Support string env values like 'false' or '0'."""
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in {"0", "false", "off", "no"}:
+                return False
+            if lowered in {"1", "true", "on", "yes"}:
+                return True
+        return value
+
+    @field_validator("truenas_ca_bundle", mode="before")
+    def normalize_ca_bundle(cls, value):
+        """Normalize CA bundle paths and ignore blank strings."""
+        if not value:
+            return None
+        path = os.path.expanduser(str(value).strip())
+        return path if path else None
     
     @field_validator("environment")
     def validate_debug_tools(cls, v):
@@ -131,7 +181,8 @@ class Settings(BaseSettings):
     @property
     def api_base_url(self) -> str:
         """Get the full API base URL"""
-        return f"{self.truenas_url}/api/v2.0"
+        base = str(self.truenas_url).rstrip("/")
+        return f"{base}/api/v2.0"
     
     @property
     def headers(self) -> Dict[str, str]:
@@ -160,7 +211,7 @@ class Settings(BaseSettings):
         "env_file_encoding": "utf-8",
         "case_sensitive": False,
         "extra": "ignore",
-        "use_enum_values": True,
+        "use_enum_values": False,
         "populate_by_name": True
     }
 

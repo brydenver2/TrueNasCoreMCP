@@ -9,6 +9,12 @@ A production-ready Model Context Protocol (MCP) server for **TrueNAS Core and SC
 
 **Automatic variant detection**: The server automatically detects whether you're connected to TrueNAS Core or SCALE and enables the appropriate features.
 
+## 📖 Documentation
+
+- [HTTP Server Reference](docs/http_server.md) – architecture, auth, gating, and endpoint details for the FastAPI transport.
+- [HTTP Smoke Testing Guide](docs/testing.md) – curated curl commands for validating non-destructive tools.
+- [DOCKER.md](DOCKER.md) – container deployment tips including Tailscale integration.
+
 ## 🚀 Features
 
 ### Universal Features (Core & SCALE)
@@ -34,9 +40,27 @@ A production-ready Model Context Protocol (MCP) server for **TrueNAS Core and SC
 
 ## 📦 Installation
 
-### Quick Start with uvx (Recommended)
+### Docker (Recommended for Remote Access)
 
-The easiest way to run TrueNAS MCP Server is with [uvx](https://github.com/astral-sh/uv):
+**The easiest way for HTTP-based remote access**:
+
+```bash
+git clone https://github.com/vespo92/TrueNasCoreMCP.git
+cd TrueNasCoreMCP
+
+# Copy and configure environment
+cp .env.example .env
+# Edit .env with your TrueNAS details and MCP_ACCESS_TOKEN
+
+# Build and run
+docker-compose up -d
+```
+
+See [DOCKER.md](DOCKER.md) for complete Docker deployment guide including Tailscale VPN integration.
+
+### Quick Start with uvx
+
+The easiest way to run TrueNAS MCP Server locally is with [uvx](https://github.com/astral-sh/uv):
 
 ```bash
 # Run directly without installation
@@ -180,6 +204,62 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## 🔄 Recent Updates
+
+- **Task type aliasing for tool gating**: the HTTP server now normalizes friendly task labels (for example `storage`, `storage_ops`, or `Storage-Ops`) so they resolve to the canonical `*-ops` allowlists. This keeps scoped headers such as `X-Task-Type: storage` aligned with the matching tool set, preventing accidental gating of storage operations like `list_pools`.
+- **Unit coverage of gating behavior**: `tests/unit/test_tool_gating.py` exercises these alias paths to ensure future changes cannot regress the normalization logic.
+
+## 🧪 HTTP Smoke Tests (curl)
+
+Use the following commands to validate a running container that exposes the HTTP MCP interface on `localhost:8000` (set `MCP_ACCESS_TOKEN`, `TRUENAS_URL`, `TRUENAS_API_KEY`, and optional `TRUENAS_VERIFY_SSL` when you start the container):
+
+```bash
+# 1. Confirm the server is healthy
+curl -s http://localhost:8000/health | jq
+
+# 2. Inspect the root document
+curl -s http://localhost:8000/ | jq
+
+# 3. Initialize an MCP session
+curl -s http://localhost:8000/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer test-token-123' \
+  -d '{
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "initialize"
+      }' | jq
+
+# 4. List only storage tools using the new alias-aware gating
+curl -s http://localhost:8000/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer test-token-123' \
+  -H 'X-Task-Type: storage' \
+  -d '{
+        "jsonrpc": "2.0",
+        "id": 2,
+        "method": "tools/list"
+      }' | jq
+
+# 5. Call the list_pools tool (limit to 5 results)
+curl -s http://localhost:8000/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer test-token-123' \
+  -d '{
+        "jsonrpc": "2.0",
+        "id": 3,
+        "method": "tools/call",
+        "params": {
+          "name": "list_pools",
+          "arguments": {"limit": 5}
+        }
+      }' | jq
+```
+
+The final command should return a JSON payload with `success: true`, confirming that `list_pools` is no longer blocked by the gating layer when a storage-specific task header is supplied.
+
+For an extended checklist that covers dataset, sharing, snapshot, and SCALE app smoke tests, see [docs/testing.md](docs/testing.md).
 
 ## 🛠️ Available Tools
 

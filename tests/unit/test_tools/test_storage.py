@@ -1,6 +1,7 @@
 """Unit tests for storage tools."""
 
 import pytest
+import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 from truenas_mcp_server.tools.storage import StorageTools
@@ -10,7 +11,7 @@ from truenas_mcp_server.exceptions import TrueNASValidationError, TrueNASNotFoun
 class TestStorageTools:
     """Test storage management tools."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def storage_tools(self, mock_truenas_client, mock_settings):
         """Create storage tools instance for testing."""
         tools = StorageTools(client=mock_truenas_client, settings=mock_settings)
@@ -99,16 +100,20 @@ class TestStorageTools:
         """Test tool definitions are properly defined."""
         definitions = storage_tools.get_tool_definitions()
 
-        assert len(definitions) > 0
-        assert any(tool["name"] == "list_pools" for tool in definitions)
-        assert any(tool["name"] == "list_datasets" for tool in definitions)
-        assert any(tool["name"] == "create_dataset" for tool in definitions)
+        def extract_name(tool_def):
+            if isinstance(tool_def, tuple):
+                return tool_def[0]
+            return tool_def.get("name")
+
+        names = {extract_name(tool) for tool in definitions}
+        assert names  # not empty
+        assert {"list_pools", "list_datasets", "create_dataset"}.issubset(names)
 
 
 class TestDatasetOperations:
     """Test dataset-specific operations."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def storage_tools(self, mock_truenas_client, mock_settings):
         """Create storage tools instance."""
         tools = StorageTools(client=mock_truenas_client, settings=mock_settings)
@@ -142,7 +147,7 @@ class TestDatasetOperations:
 class TestPoolOperations:
     """Test pool-specific operations."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def storage_tools(self, mock_truenas_client, mock_settings):
         """Create storage tools instance."""
         tools = StorageTools(client=mock_truenas_client, settings=mock_settings)

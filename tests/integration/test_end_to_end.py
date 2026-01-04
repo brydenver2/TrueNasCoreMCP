@@ -16,8 +16,9 @@ class TestEndToEnd:
         """Test MCP server can be created."""
         with patch('truenas_mcp_server.server.get_client') as mock_get_client:
             mock_get_client.return_value = AsyncMock()
-            server = create_server()
+            server = create_server(settings=mock_settings)
             assert server is not None
+            assert server.settings is mock_settings
 
     @pytest.mark.asyncio
     async def test_pool_workflow(self, mock_truenas_client, mock_pool_response):

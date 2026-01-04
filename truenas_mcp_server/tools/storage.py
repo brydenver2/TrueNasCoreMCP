@@ -3,45 +3,124 @@ Storage management tools for TrueNAS
 """
 
 from typing import Dict, Any, Optional, List
+
+from ..exceptions import TrueNASValidationError, TrueNASNotFoundError
 from .base import BaseTool, tool_handler
 
 
 class StorageTools(BaseTool):
     """Tools for managing TrueNAS storage (pools, datasets, volumes)"""
+
+    def _tool(self, name: str, description: str, parameters: Dict[str, Any]):
+        return (name, getattr(self, name), description, parameters)
     
-    def get_tool_definitions(self) -> list:
+    def get_tool_definitions(self) -> List[Dict[str, Any]]:
         """Get tool definitions for storage management"""
         return [
-            ("list_pools", self.list_pools, "List all storage pools",
-             {"limit": {"type": "integer", "required": False,
-                       "description": "Max items to return (default: 100, max: 500)"},
-              "offset": {"type": "integer", "required": False,
-                        "description": "Items to skip for pagination"}}),
-            ("get_pool_status", self.get_pool_status, "Get detailed status of a specific pool",
-             {"pool_name": {"type": "string", "required": True}}),
-            ("list_datasets", self.list_datasets, "List all datasets",
-             {"limit": {"type": "integer", "required": False,
-                       "description": "Max items to return (default: 100, max: 500)"},
-              "offset": {"type": "integer", "required": False,
-                        "description": "Items to skip for pagination"},
-              "include_children": {"type": "boolean", "required": False,
-                                  "description": "Include child datasets in response (default: true)"}}),
-            ("get_dataset", self.get_dataset, "Get detailed information about a dataset",
-             {"dataset": {"type": "string", "required": True},
-              "include_children": {"type": "boolean", "required": False,
-                                  "description": "Include child datasets in response (default: true)"}}),
-            ("create_dataset", self.create_dataset, "Create a new dataset",
-             {"pool": {"type": "string", "required": True},
-              "name": {"type": "string", "required": True},
-              "compression": {"type": "string", "required": False},
-              "quota": {"type": "string", "required": False},
-              "recordsize": {"type": "string", "required": False}}),
-            ("delete_dataset", self.delete_dataset, "Delete a dataset",
-             {"dataset": {"type": "string", "required": True},
-              "recursive": {"type": "boolean", "required": False}}),
-            ("update_dataset", self.update_dataset, "Update dataset properties",
-             {"dataset": {"type": "string", "required": True},
-              "properties": {"type": "object", "required": True}}),
+            self._tool(
+                "list_pools",
+                "List all storage pools",
+                {
+                    "limit": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Max items to return (default: 100, max: 500)"
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Items to skip for pagination"
+                    }
+                }
+            ),
+            self._tool(
+                "get_pool",
+                "Get a single pool by name",
+                {
+                    "pool_name": {"type": "string", "required": True}
+                }
+            ),
+            self._tool(
+                "get_pool_status",
+                "Get detailed status of a specific pool",
+                {
+                    "pool_name": {"type": "string", "required": True}
+                }
+            ),
+            self._tool(
+                "list_datasets",
+                "List all datasets",
+                {
+                    "limit": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Max items to return (default: 100, max: 500)"
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "required": False,
+                        "description": "Items to skip for pagination"
+                    },
+                    "include_children": {
+                        "type": "boolean",
+                        "required": False,
+                        "description": "Include child datasets in response (default: true)"
+                    },
+                    "pool_name": {
+                        "type": "string",
+                        "required": False,
+                        "description": "Filter datasets by pool"
+                    }
+                }
+            ),
+            self._tool(
+                "get_dataset",
+                "Get detailed information about a dataset",
+                {
+                    "dataset": {"type": "string", "required": True},
+                    "include_children": {
+                        "type": "boolean",
+                        "required": False,
+                        "description": "Include child datasets in response (default: true)"
+                    }
+                }
+            ),
+            self._tool(
+                "create_dataset",
+                "Create a new dataset",
+                {
+                    "pool_name": {"type": "string", "required": True},
+                    "dataset_name": {"type": "string", "required": True},
+                    "compression": {"type": "string", "required": False},
+                    "quota": {"type": "string", "required": False},
+                    "recordsize": {"type": "string", "required": False}
+                }
+            ),
+            self._tool(
+                "delete_dataset",
+                "Delete a dataset",
+                {
+                    "dataset": {"type": "string", "required": True},
+                    "recursive": {"type": "boolean", "required": False}
+                }
+            ),
+            self._tool(
+                "update_dataset",
+                "Update dataset properties",
+                {
+                    "dataset": {"type": "string", "required": True},
+                    "properties": {"type": "object", "required": True}
+                }
+            ),
+            self._tool(
+                "set_quota",
+                "Set a quota on a dataset",
+                {
+                    "dataset_id": {"type": "string", "required": True},
+                    "quota": {"type": "string", "required": True},
+                    "hard": {"type": "boolean", "required": False}
+                }
+            )
         ]
     
     @tool_handler
@@ -110,6 +189,23 @@ class StorageTools(BaseTool):
             }
         }
     
+    @tool_handler
+    async def get_pool(self, pool_name: str) -> Dict[str, Any]:
+        """Get summarized information for a specific pool."""
+        status = await self.get_pool_status({"pool_name": pool_name})
+        if not status.get("success"):
+            return status
+        pool_data = status.get("pool", {})
+        summary = {"success": True, **pool_data}
+        capacity = pool_data.get("capacity", {})
+        if capacity.get("size"):
+            summary["size"] = capacity["size"]
+        if capacity.get("allocated"):
+            summary.setdefault("allocated_display", capacity["allocated"])
+        if capacity.get("free"):
+            summary.setdefault("free_display", capacity["free"])
+        return summary
+
     @tool_handler
     async def get_pool_status(self, pool_name: str) -> Dict[str, Any]:
         """
@@ -207,7 +303,8 @@ class StorageTools(BaseTool):
         self,
         limit: int = 100,
         offset: int = 0,
-        include_children: bool = True
+        include_children: bool = True,
+        pool_name: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         List all datasets
@@ -247,6 +344,9 @@ class StorageTools(BaseTool):
                 dataset_info["children"] = ds.get("children", [])
 
             dataset_list.append(dataset_info)
+
+        if pool_name:
+            dataset_list = [ds for ds in dataset_list if ds.get("pool") == pool_name]
 
         # Organize by pool (before pagination)
         pools_datasets = {}
@@ -343,8 +443,10 @@ class StorageTools(BaseTool):
     @tool_handler
     async def create_dataset(
         self,
-        pool: str,
-        name: str,
+        pool_name: Optional[str] = None,
+        dataset_name: Optional[str] = None,
+        pool: Optional[str] = None,
+        name: Optional[str] = None,
         compression: str = "lz4",
         quota: Optional[str] = None,
         recordsize: str = "128K",
@@ -367,39 +469,45 @@ class StorageTools(BaseTool):
             Dictionary containing created dataset information
         """
         await self.ensure_initialized()
-        
-        # Prepare dataset data
+
+        normalized_pool = pool_name or pool
+        normalized_name = dataset_name or name
+
+        fields = {
+            "pool_name": normalized_pool,
+            "dataset_name": normalized_name,
+        }
+        self._validate_fields(fields, ["pool_name", "dataset_name"])
+
+        dataset_path = f"{normalized_pool}/{normalized_name}"
         dataset_data = {
-            "name": f"{pool}/{name}",
+            "name": dataset_path,
             "type": "FILESYSTEM",
             "compression": compression,
             "sync": sync,
             "atime": atime,
             "recordsize": recordsize
         }
-        
-        # Add quota if specified
+
         if quota:
-            dataset_data["quota"] = self.parse_size(quota)
-        
-        # Create the dataset
+            dataset_data["quota"] = self._parse_size(quota)
+
         created = await self.client.post("/pool/dataset", dataset_data)
-        
+
         return {
             "success": True,
-            "message": f"Dataset '{pool}/{name}' created successfully",
-            "dataset": {
-                "name": created.get("name"),
-                "id": created.get("id"),
-                "mountpoint": created.get("mountpoint"),
-                "compression": compression,
-                "quota": quota,
-                "recordsize": recordsize
-            }
+            "message": f"Dataset '{dataset_path}' created successfully",
+            **created
         }
     
     @tool_handler
-    async def delete_dataset(self, dataset: str, recursive: bool = False, force: bool = False) -> Dict[str, Any]:
+    async def delete_dataset(
+        self,
+        dataset: Optional[str] = None,
+        dataset_name: Optional[str] = None,
+        recursive: bool = False,
+        force: bool = False
+    ) -> Dict[str, Any]:
         """
         Delete a dataset
         
@@ -412,44 +520,31 @@ class StorageTools(BaseTool):
             Dictionary confirming deletion
         """
         await self.ensure_initialized()
-        
-        # Check if destructive operations are allowed
+
+        target_name = dataset or dataset_name
+        self._validate_fields({"dataset": target_name}, ["dataset"])
+
         if not self.settings.enable_destructive_operations:
-            return {
-                "success": False,
-                "error": "Destructive operations are disabled. Enable TRUENAS_ENABLE_DESTRUCTIVE_OPS to allow dataset deletion."
-            }
-        
-        # Find the dataset
+            raise TrueNASValidationError(
+                "Destructive operations are disabled. Enable TRUENAS_ENABLE_DESTRUCTIVE_OPS to allow dataset deletion."
+            )
+
         datasets = await self.client.get("/pool/dataset")
-        target_dataset = None
-        for ds in datasets:
-            if ds.get("name") == dataset:
-                target_dataset = ds
-                break
-        
+        target_dataset = next((ds for ds in datasets if ds.get("name") == target_name), None)
+
         if not target_dataset:
-            return {
-                "success": False,
-                "error": f"Dataset '{dataset}' not found"
-            }
-        
-        # Prepare deletion options
-        delete_options = {
-            "recursive": recursive,
-            "force": force
-        }
-        
-        # Delete the dataset
+            raise TrueNASNotFoundError(f"Dataset '{target_name}' not found")
+
         dataset_id = target_dataset["id"]
         await self.client.delete(f"/pool/dataset/id/{dataset_id}")
-        
+
         return {
             "success": True,
-            "message": f"Dataset '{dataset}' deleted successfully",
+            "message": f"Dataset '{target_name}' deleted successfully",
             "deleted": {
-                "name": dataset,
+                "name": target_name,
                 "recursive": recursive,
+                "force": force,
                 "children_deleted": len(target_dataset.get("children", [])) if recursive else 0
             }
         }
@@ -503,3 +598,45 @@ class StorageTools(BaseTool):
                 "id": updated.get("id")
             }
         }
+
+    @tool_handler
+    async def set_quota(
+        self,
+        dataset_id: Optional[str] = None,
+        quota: Optional[str] = None,
+        hard: bool = True
+    ) -> Dict[str, Any]:
+        """Set a quota on a dataset."""
+        await self.ensure_initialized()
+
+        self._validate_fields({"dataset_id": dataset_id, "quota": quota}, ["dataset_id", "quota"])
+
+        quota_bytes = self._parse_size(quota) if isinstance(quota, str) else quota
+
+        response = await self.client.request(
+            "PUT",
+            f"/pool/dataset/id/{dataset_id}",
+            json={"quota": quota_bytes, "hard": hard}
+        )
+
+        return {"success": True, "dataset_id": dataset_id, "hard": hard, **response}
+
+    def _validate_fields(self, data: Dict[str, Any], required: List[str]):
+        missing = [field for field in required if not data.get(field)]
+        if missing:
+            raise TrueNASValidationError(f"Missing required fields: {', '.join(missing)}")
+
+    def _format_size(self, size_bytes: int) -> str:
+        """Test helper that wraps BaseTool formatting with single decimal precision."""
+        if size_bytes is None:
+            return "0.0 B"
+        value = float(size_bytes)
+        units = ["B", "KB", "MB", "GB", "TB", "PB", "EB"]
+        for unit in units:
+            if abs(value) < 1024.0:
+                return f"{value:.1f} {unit}"
+            value /= 1024.0
+        return f"{value:.1f} ZB"
+
+    def _parse_size(self, size_str: str) -> int:
+        return self.parse_size(size_str)

@@ -186,10 +186,12 @@ class TestTrueNASHTTPClient:
         client = TrueNASClient(settings=mock_settings)
         client._client = AsyncMock(spec=httpx.AsyncClient)
         client._client.is_closed = False
+        active_client = client._client
 
         await client.close()
 
-        client._client.aclose.assert_called_once()
+        active_client.aclose.assert_called_once()
+        assert client._client is None
 
     @pytest.mark.asyncio
     async def test_retry_logic(self, mock_settings):

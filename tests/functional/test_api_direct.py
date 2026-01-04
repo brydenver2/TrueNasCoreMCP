@@ -5,7 +5,17 @@ import httpx
 import asyncio
 import os
 from pathlib import Path
+import pytest
 
+
+RUN_MANUAL_TESTS = os.getenv("RUN_MANUAL_TRUENAS_TESTS", "0") == "1"
+pytestmark = pytest.mark.skipif(
+    not RUN_MANUAL_TESTS,
+    reason="Manual TrueNAS connectivity smoke test; enable with RUN_MANUAL_TRUENAS_TESTS=1",
+)
+
+
+@pytest.mark.asyncio
 async def test_direct():
     # Read .env file directly
     env_path = Path(__file__).parent / ".env"

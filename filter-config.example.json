@@ -1,0 +1,65 @@
+{
+  "task_type_allowlists": {
+    "user-ops": [
+      "list_users",
+      "get_user",
+      "create_user",
+      "update_user",
+      "delete_user"
+    ],
+    "storage-ops": [
+      "list_pools",
+      "get_pool",
+      "create_dataset",
+      "update_dataset",
+      "delete_dataset"
+    ],
+    "sharing-ops": [
+      "list_shares",
+      "create_smb_share",
+      "update_smb_share",
+      "delete_smb_share"
+    ],
+    "snapshot-ops": [
+      "list_snapshots",
+      "create_snapshot",
+      "rollback_snapshot",
+      "delete_snapshot"
+    ],
+    "apps-ops": [
+      "list_apps",
+      "get_app",
+      "update_app",
+      "delete_app"
+    ],
+    "instance-ops": [
+      "list_instances",
+      "start_instance",
+      "stop_instance",
+      "delete_instance"
+    ],
+    "vm-ops": [
+      "list_vms",
+      "start_vm",
+      "stop_vm",
+      "delete_vm"
+    ],
+    "debug-ops": [
+      "list_debug_metrics",
+      "get_debug_setting"
+    ],
+    "meta-ops": ["discover_tools", "list_task_types"]
+  },
+  "max_tools": 12,
+  "blocklist": [],
+  "intent_keywords": {
+    "user-ops": ["user", "account", "permission"],
+    "storage-ops": ["pool", "zfs", "dataset"],
+    "sharing-ops": ["share", "smb", "nfs"],
+    "snapshot-ops": ["snapshot", "rollback"],
+    "apps-ops": ["app", "chart", "compose"],
+    "instance-ops": ["incus", "instance", "container"],
+    "vm-ops": ["vm", "bhyve"],
+    "debug-ops": ["debug", "diagnostic"]
+  }
+}

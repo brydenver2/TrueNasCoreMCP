@@ -3,14 +3,11 @@ include requirements.txt
 include requirements-dev.txt
 
 # Include documentation
-include README.md
+include docs/root/README.md
 include LICENSE
-include CHANGELOG.md
-include CONTRIBUTING.md
-include FEATURES.md
-include QUICKSTART.md
-include QUICK_REFERENCE.md
-include SECURITY.md
+include docs/root/CHANGELOG.md
+include docs/root/CONTRIBUTING.md
+include docs/root/SECURITY.md
 
 # Include configuration examples
 include .env.example

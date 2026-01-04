@@ -208,7 +208,7 @@ python tests/debug_mcp.py
 
 ## 🆘 Getting Help
 
-- **Read the docs**: Start with [README.md](README.md) and [FEATURES.md](FEATURES.md)
+- **Read the docs**: Start with [README.md](../root/README.md) and [FEATURES.md](FEATURES.md)
 - **Check examples**: Look in [examples/](examples/) for code samples
 - **Run tests**: Use `make test` to verify your setup
 - **Open an issue**: Report bugs or request features on GitHub

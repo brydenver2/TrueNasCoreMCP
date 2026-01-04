@@ -5,6 +5,7 @@ from typing import AsyncGenerator, Dict, Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+import pytest_asyncio
 import httpx
 from pydantic import SecretStr
 
@@ -75,7 +76,7 @@ def mock_httpx_client() -> MagicMock:
     return client
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def mock_truenas_client(mock_settings: Settings) -> AsyncGenerator[TrueNASClient, None]:
     """Create a mock TrueNAS HTTP client."""
     client = TrueNASClient(settings=mock_settings)

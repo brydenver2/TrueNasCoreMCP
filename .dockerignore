@@ -1,0 +1,79 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Documentation
+docs/_build/
+site/
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Development files
+*.md
+!docs/root/*.md
+LICENSE
+CONTRIBUTING.md
+CHANGELOG.md
+SECURITY.md
+.pre-commit-config.yaml
+.editorconfig
+
+# Examples and tests
+examples/
+tests/
+dev-utils/
+utils/
+
+# Configuration examples
+claude_config_example.json
+claude_desktop_config_direct.json
+.env.example
+
+# Build artifacts
+*.tar
+*.tar.gz
+*.zip

@@ -1,0 +1,57 @@
+services:
+  truenas-mcp-server:
+    build: .
+    container_name: truenas-mcp-server
+    ports:
+      - "8000:8000"
+    environment:
+      # TrueNAS Configuration (Required)
+      - TRUENAS_URL=${TRUENAS_URL}
+      - TRUENAS_API_KEY=${TRUENAS_API_KEY}
+      
+      # TrueNAS Configuration (Optional)
+      - TRUENAS_VERIFY_SSL=${TRUENAS_VERIFY_SSL:-true}
+      - TRUENAS_LOG_LEVEL=${TRUENAS_LOG_LEVEL:-INFO}
+      - TRUENAS_ENV=${TRUENAS_ENV:-production}
+      - TRUENAS_HTTP_TIMEOUT=${TRUENAS_HTTP_TIMEOUT:-30}
+      - TRUENAS_ENABLE_DESTRUCTIVE_OPS=${TRUENAS_ENABLE_DESTRUCTIVE_OPS:-false}
+      - TRUENAS_ENABLE_DEBUG_TOOLS=${TRUENAS_ENABLE_DEBUG_TOOLS:-false}
+      
+      # MCP Server Configuration
+      - MCP_ACCESS_TOKEN=${MCP_ACCESS_TOKEN}
+      - MCP_TRANSPORT=${MCP_TRANSPORT:-http}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080}
+      
+      # Optional: Tailscale Configuration
+      - TAILSCALE_ENABLED=${TAILSCALE_ENABLED:-false}
+      - TAILSCALE_AUTH_KEY=${TAILSCALE_AUTH_KEY:-}
+      - TAILSCALE_AUTH_KEY_FILE=${TAILSCALE_AUTH_KEY_FILE:-}
+      - TAILSCALE_HOSTNAME=${TAILSCALE_HOSTNAME:-truenas-mcp-server}
+      - TAILSCALE_TAGS=${TAILSCALE_TAGS:-}
+      - TAILSCALE_EXTRA_ARGS=${TAILSCALE_EXTRA_ARGS:-}
+      - TAILSCALE_STATE_DIR=${TAILSCALE_STATE_DIR:-/var/lib/tailscale}
+      - TAILSCALE_TIMEOUT=${TAILSCALE_TIMEOUT:-30}
+    
+    # Uncomment if using Tailscale
+    # volumes:
+    #   - tailscale-state:/var/lib/tailscale
+    
+    # Uncomment if using Tailscale
+    # cap_add:
+    #   - NET_ADMIN
+    # devices:
+    #   - /dev/net/tun:/dev/net/tun
+    
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+# Uncomment if using Tailscale
+# volumes:
+#   tailscale-state:
+#     driver: local

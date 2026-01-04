@@ -222,7 +222,7 @@ pymdown-extensions==10.19
     #   mkdocstrings
 pyproject-hooks==1.2.0
     # via build
-pytest==9.0.2
+pytest==8.3.3
     # via
     #   -r requirements-dev.txt
     #   pytest-asyncio
