@@ -143,18 +143,27 @@ connect_tailscale() {
 main() {
     log "Starting TrueNAS MCP Server..."
     
-    # Validate required environment variables
-    if [[ -z "${TRUENAS_URL:-}" ]]; then
+    # Resolve required configuration (supports *_FILE secrets)
+    local truenas_url
+    truenas_url="$(get_config_value "TRUENAS_URL")"
+    if [[ -z "${truenas_url}" ]]; then
         error_exit "TRUENAS_URL environment variable is required"
     fi
+    export TRUENAS_URL="${truenas_url}"
     
-    if [[ -z "${TRUENAS_API_KEY:-}" ]]; then
+    local truenas_api_key
+    truenas_api_key="$(get_config_value "TRUENAS_API_KEY")"
+    if [[ -z "${truenas_api_key}" ]]; then
         error_exit "TRUENAS_API_KEY environment variable is required"
     fi
+    export TRUENAS_API_KEY="${truenas_api_key}"
     
-    if [[ -z "${MCP_ACCESS_TOKEN:-}" ]]; then
+    local mcp_access_token
+    mcp_access_token="$(get_config_value "MCP_ACCESS_TOKEN")"
+    if [[ -z "${mcp_access_token}" ]]; then
         error_exit "MCP_ACCESS_TOKEN environment variable is required"
     fi
+    export MCP_ACCESS_TOKEN="${mcp_access_token}"
     
     log "Environment validation passed"
     log "TrueNAS URL: ${TRUENAS_URL}"
