@@ -166,7 +166,7 @@ main() {
     export MCP_ACCESS_TOKEN="${mcp_access_token}"
     
     log "Environment validation passed"
-    log "TrueNAS URL: ${truenas_url}"
+    log "TrueNAS URL: ${TRUENAS_URL}"
     log "MCP Transport: ${MCP_TRANSPORT:-http}"
     
     # Handle Tailscale if enabled
